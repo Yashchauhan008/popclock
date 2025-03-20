@@ -71,6 +71,7 @@ class ClockWidget {
         this.createClockElement();
         this.loadSettings();
         this.setupEventListeners();
+        this.loadTimerState();
         this.startClock();
     }
 
@@ -447,10 +448,13 @@ class ClockWidget {
                     this.clockElement.classList.add('timer-active', 'timer-paused');
                 } else if (endTime > now) {
                     this.timer.endTime = new Date(endTime);
+                    this.timer.remainingTime = endTime - now;
                     this.clockElement.classList.add('timer-active');
                 } else {
                     this.timerComplete();
+                    return;
                 }
+                this.updateClock(); // Immediately update the display
             }
         });
     }
