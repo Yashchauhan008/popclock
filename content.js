@@ -142,6 +142,7 @@ class ClockWidget {
             <div class="menu-item timer-option" data-minutes="30">30 Minutes</div>
             <div class="menu-item timer-option" data-minutes="60">1 Hour</div>
             <div class="menu-item" id="customTimer">Custom Timer...</div>
+            <div class="menu-item dev-block" id="devBlock">Made by @this guy</div>
             ${this.timer.active ? `
                 <div class="menu-separator"></div>
                 <div class="menu-item" id="${this.timer.paused ? 'resumeTimer' : 'pauseTimer'}">
@@ -200,6 +201,11 @@ class ClockWidget {
                 const minutes = parseInt(option.dataset.minutes);
                 this.startTimer(minutes);
             });
+        });
+
+        // Portfolio link
+        document.getElementById('devBlock').addEventListener('click', () => {
+            window.open('https://yash-chauhan.vercel.app', '_blank');
         });
 
         // Custom timer

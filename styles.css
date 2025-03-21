@@ -1,24 +1,76 @@
 
-/* 
-#notesMain {
-  position: relative;
-  display: inline-block;
+/* Notes Section Styles */
+.notes-section {
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    margin-top: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-#noteBtn {
-  background-color: #ff0000;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  cursor: pointer;
-  font-size: 14px;
-  border-radius: 5px;
+#noteInput {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    resize: vertical;
+    min-height: 80px;
 }
 
-#notesPopupContainer {
-  position: absolute;
-  display: none;
-} */
+#saveNote {
+    background-color: #4a5568;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#saveNote:hover {
+    background-color: #2d3748;
+}
+
+#noteList {
+    list-style: none;
+    padding: 0;
+    margin-top: 15px;
+}
+
+#noteList li {
+    background: #f7fafc;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.note-content {
+    margin-bottom: 5px;
+}
+
+.note-timestamp {
+    font-size: 12px;
+    color: #718096;
+}
+
+.delete-note {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    background: #feb2b2;
+    color: #c53030;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.delete-note:hover {
+    background: #fc8181;
+}
 
 /* Reset default styles for all extension elements */
 /* #clockdiv,
@@ -382,4 +434,9 @@
 
 #noteList li:hover .delete-note {
     opacity: 1;
+}
+#devBlock {
+    cursor: pointer;
+    color: #4299e1d3 !important;
+    mix-blend-mode: darken;
 }
