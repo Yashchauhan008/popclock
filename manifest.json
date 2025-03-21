@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PopClock - Floating Time & Notes",
+  "name": "PopClock - Floating Time & Timer",
   "version": "1.0.0",
-  "description": "A beautiful floating clock with time format options and note-taking capabilities.",
+  "description": "A beautiful floating clock with time format options and timer functionality.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

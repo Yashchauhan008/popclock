@@ -44,6 +44,44 @@
 //     updateClock(); // Initial call to display clock immediately
 // }
 
+// Helper function to safely load data from storage
+const safeStorageGet = async (keys) => {
+    try {
+        return new Promise((resolve) => {
+            chrome.storage.local.get(keys, (result) => {
+                if (chrome.runtime.lastError) {
+                    console.warn('Storage get warning:', chrome.runtime.lastError);
+                    resolve(null);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+    } catch (error) {
+        console.warn('Storage get failed:', error);
+        return null;
+    }
+};
+
+// Helper function to safely save data to storage
+const safeStorageSet = async (data) => {
+    try {
+        return new Promise((resolve) => {
+            chrome.storage.local.set(data, () => {
+                if (chrome.runtime.lastError) {
+                    console.warn('Storage set warning:', chrome.runtime.lastError);
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            });
+        });
+    } catch (error) {
+        console.warn('Storage set failed:', error);
+        return false;
+    }
+};
+
 class ClockWidget {
     constructor() {
         this.isDragging = false;
@@ -67,12 +105,16 @@ class ClockWidget {
         this.init();
     }
 
-    init() {
-        this.createClockElement();
-        this.loadSettings();
-        this.setupEventListeners();
-        this.loadTimerState();
-        this.startClock();
+    async init() {
+        try {
+            this.createClockElement();
+            await this.loadSettings();
+            this.setupEventListeners();
+            await this.loadTimerState();
+            this.startClock();
+        } catch (error) {
+            console.warn('Failed to initialize clock:', error);
+        }
     }
 
     createClockElement() {
@@ -111,16 +153,23 @@ class ClockWidget {
         document.body.appendChild(contextMenu);
     }
 
-    loadSettings() {
-        chrome.storage.local.get(['clockSettings'], (result) => {
-            if (result.clockSettings) {
+    async loadSettings() {
+        try {
+            const result = await safeStorageGet(['clockSettings']);
+            if (result?.clockSettings) {
                 this.settings = { ...this.settings, ...result.clockSettings };
             }
-        });
+        } catch (error) {
+            console.warn('Failed to load settings:', error);
+        }
     }
 
-    saveSettings() {
-        chrome.storage.local.set({ clockSettings: this.settings });
+    async saveSettings() {
+        try {
+            await safeStorageSet({ clockSettings: this.settings });
+        } catch (error) {
+            console.warn('Failed to save settings:', error);
+        }
     }
 
     setupEventListeners() {
@@ -355,16 +404,21 @@ class ClockWidget {
         document.getElementById('clockContextMenu').style.display = 'none';
     }
 
-    saveTimerState() {
-        chrome.storage.local.set({
-            timerState: {
-                active: this.timer.active,
-                endTime: this.timer.endTime?.getTime(),
-                originalDuration: this.timer.originalDuration,
-                paused: this.timer.paused,
-                remainingTime: this.timer.remainingTime
-            }
-        });
+    async saveTimerState() {
+        try {
+            await safeStorageSet({
+                timerState: {
+                    active: this.timer.active,
+                    endTime: this.timer.endTime?.getTime(),
+                    originalDuration: this.timer.originalDuration,
+                    paused: this.timer.paused,
+                    remainingTime: this.timer.remainingTime
+                }
+            });
+        } catch (error) {
+            console.warn('Failed to save timer state:', error);
+        }
+
     }
 
     cancelTimer() {
@@ -385,56 +439,77 @@ class ClockWidget {
     }
 
     showNotification() {
-        // Create notification overlay
-        const overlay = document.createElement('div');
-        overlay.className = 'timer-overlay';
         
-        const notification = document.createElement('div');
-        notification.className = 'timer-notification';
-        notification.innerHTML = `
-            <div class="notification-title">Timer Complete!</div>
-            <div class="notification-message">Your ${this.timer.originalDuration} minute timer has ended</div>
-            <button class="notification-close">Close</button>
-        `;
-        
-        overlay.appendChild(notification);
-        document.body.appendChild(overlay);
+        try {
+            // Create notification overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'timer-overlay';
+            
+            const notification = document.createElement('div');
+            notification.className = 'timer-notification';
+            notification.innerHTML = `
+                <div class="notification-title">Timer Complete!</div>
+                <div class="notification-message">Your ${this.timer.originalDuration} minute timer has ended</div>
+                <button class="notification-close">Close</button>
+            `;
+            
+            overlay.appendChild(notification);
+            document.body.appendChild(overlay);
 
-        // Add close button functionality
-        const closeButton = notification.querySelector('.notification-close');
-        closeButton.addEventListener('click', () => {
-            overlay.remove();
-        });
-
-        // Play notification sound three times
-        const audio = new Audio(chrome.runtime.getURL('notification.mp3'));
-        let playCount = 0;
-
-        const playSound = () => {
-            if (playCount < 3) {
-                audio.play()
-                    .then(() => {
-                        playCount++;
-                        if (playCount < 3) {
-                            setTimeout(playSound, 1000); // Play next sound after 1 second
-                        }
-                    })
-                    .catch(() => {}); // Ignore if audio fails to play
-            }
-        };
-
-        playSound();
-
-        // Auto-remove notification after 10 seconds if not closed manually
-        setTimeout(() => {
-            if (document.body.contains(overlay)) {
+            // Add close button functionality
+            const closeButton = notification.querySelector('.notification-close');
+            closeButton.addEventListener('click', () => {
                 overlay.remove();
-            }
-        }, 10000);
+            });
+
+            // Create and configure audio
+            const audioUrl = chrome.runtime.getURL('notification.mp3');
+            const audio = new Audio(audioUrl);
+            audio.volume = 0.7;
+            audio.preload = 'auto';
+            
+            // Function to play sound once
+            const playSound = async () => {
+                if (!document.body.contains(overlay)) return; // Stop if notification was closed
+                
+                try {
+                    await audio.play();
+                } catch (error) {
+                    console.warn('Could not play notification sound:', error);
+                    if (!document.getElementById('playSound') && document.body.contains(overlay)) {
+                        const soundButton = document.createElement('button');
+                        soundButton.id = 'playSound';
+                        soundButton.className = 'notification-sound';
+                        soundButton.innerHTML = '🔔 Play Sound';
+                        soundButton.onclick = (e) => {
+                            e.preventDefault();
+                            audio.play().catch(console.warn);
+                        };
+                        notification.appendChild(soundButton);
+                    }
+                }
+            };
+            
+            // Play sound once
+            playSound().catch(console.warn);
+
+            // Auto-remove notification after 10 seconds if not closed manually
+            setTimeout(() => {
+                if (document.body.contains(overlay)) {
+                    overlay.remove();
+                }
+            }, 10000);
+            
+        } catch (error) {
+            console.warn('Error showing notification:', error);
+        }
     }
 
-    loadTimerState() {
-        chrome.storage.local.get(['timerState'], (result) => {
+    async loadTimerState() {
+        try {
+            const result = await safeStorageGet(['timerState']);
+            if (!result) return;
+            
             if (result.timerState && result.timerState.active) {
                 const now = Date.now();
                 const endTime = result.timerState.endTime;
@@ -456,7 +531,9 @@ class ClockWidget {
                 }
                 this.updateClock(); // Immediately update the display
             }
-        });
+        } catch (error) {
+            console.warn('Failed to load timer state:', error);
+        }
     }
 
     startClock() {
@@ -465,6 +542,11 @@ class ClockWidget {
     }
 }
 
-// Initialize the clock widget
-const clockWidget = new ClockWidget();
-
+// Initialize the clock widget with error handling
+try {
+    const clockWidget = new ClockWidget();
+} catch (error) {
+    console.warn('Failed to initialize clock widget:', error);
+    // Wait a bit and try to reload the page
+    setTimeout(() => window.location.reload(), 1000);
+}
