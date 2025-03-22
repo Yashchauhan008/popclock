@@ -91,7 +91,8 @@ class ClockWidget {
         this.clockContainer = null;
         this.settings = {
             format24Hour: false,
-            showSeconds: true
+            showSeconds: true,
+            visible: true
         };
         this.timer = {
             active: false,
@@ -132,6 +133,7 @@ class ClockWidget {
         contextMenu.innerHTML = `
             <div class="menu-item" id="toggleFormat">Toggle 12/24 Hour</div>
             <div class="menu-item" id="toggleSeconds">Toggle Seconds</div>
+            <div class="menu-item" id="hideClock">Hide Clock</div>
             <div class="menu-separator"></div>
             <div class="menu-header">Set Timer</div>
             <div class="menu-item timer-option" data-minutes="1">1 Minute</div>
@@ -159,6 +161,14 @@ class ClockWidget {
             const result = await safeStorageGet(['clockSettings']);
             if (result?.clockSettings) {
                 this.settings = { ...this.settings, ...result.clockSettings };
+            }
+            
+            // Check if the clock should be visible
+            if (this.settings.visible === false) {
+                // If the clock was hidden in a previous session and the page is refreshed,
+                // we'll show it again as requested
+                this.settings.visible = true;
+                this.saveSettings();
             }
         } catch (error) {
             console.warn('Failed to load settings:', error);
@@ -193,6 +203,11 @@ class ClockWidget {
         document.getElementById('toggleSeconds').addEventListener('click', () => {
             this.settings.showSeconds = !this.settings.showSeconds;
             this.saveSettings();
+        });
+
+        // Hide clock button
+        document.getElementById('hideClock').addEventListener('click', () => {
+            this.hideClockElement();
         });
 
         // Timer options
@@ -539,6 +554,42 @@ class ClockWidget {
             }
         } catch (error) {
             console.warn('Failed to load timer state:', error);
+        }
+    }
+
+    hideClockElement() {
+        // Hide the clock
+        if (this.clockContainer) {
+            this.clockContainer.style.display = 'none';
+            
+            // Update settings
+            this.settings.visible = false;
+            this.saveSettings();
+            
+            // Hide the context menu
+            document.getElementById('clockContextMenu').style.display = 'none';
+            
+            // Show a brief notification that the clock is hidden
+            const notification = document.createElement('div');
+            notification.className = 'clock-notification';
+            notification.textContent = 'Clock hidden. Refresh the page to show it again.';
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.left = '50%';
+            notification.style.transform = 'translateX(-50%)';
+            notification.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            notification.style.color = 'white';
+            notification.style.padding = '10px 20px';
+            notification.style.borderRadius = '5px';
+            notification.style.zIndex = '10000';
+            document.body.appendChild(notification);
+            
+            // Remove the notification after a few seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
         }
     }
 
